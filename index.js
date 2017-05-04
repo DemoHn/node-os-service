@@ -188,10 +188,6 @@ function add (name, options, cb) {
 		options = {};
 	}
 
-	var nodePath = (options && options.nodePath)
-			? options.nodePath
-			: process.execPath;
-
 	var programPath = (options && options.programPath)
 			? options.programPath
 			: process.argv[1];
@@ -205,12 +201,6 @@ function add (name, options, cb) {
 				: name;
 		
 		var serviceArgs = [];
-
-		serviceArgs.push (nodePath);
-
-		if (options && options.nodeArgs)
-			for (var i = 0; i < options.nodeArgs.length; i++)
-				serviceArgs.push (options.nodeArgs[i]);
 
 		serviceArgs.push (programPath);
 	
@@ -338,6 +328,23 @@ function add (name, options, cb) {
 	return this;
 }
 
+function getStatus(service_name) {
+
+	if(os.platform() === "win32"){
+		// return code
+		// -100: SCManger not open
+		// -101: service not found!
+
+		// positive code (defiend by Windows)
+		// ref: https://msdn.microsoft.com/en-us/library/windows/desktop/ms685992(v=vs.85).aspx
+		// 0x01: SERVICE_STOPPED
+		// 0x04: SERVICE_RUNNING
+		return getServiceWrap().getStatus(service_name);
+	}else{
+		return null;
+	}
+}
+
 function isStopRequested () {
 	return getServiceWrap ().isStopRequested ();
 }
@@ -460,3 +467,4 @@ exports.add = add;
 exports.remove = remove;
 exports.run = run;
 exports.stop = stop;
+exports.getStatus = getStatus;

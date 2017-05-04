@@ -59,6 +59,41 @@ DWORD set_status (DWORD status_code, DWORD win32_rcode, DWORD service_rcode) {
 	return 0;
 }
 
+// get current process status
+
+int get_status( const char* name ) {
+    SC_HANDLE theService, scm;
+    SERVICE_STATUS_PROCESS ssStatus;
+    DWORD dwBytesNeeded;
+
+
+    scm = OpenSCManager( nullptr, nullptr, SC_MANAGER_ENUMERATE_SERVICE );
+    if( !scm ) {
+		// open SCManager failed!
+        return -100;
+    }
+
+    theService = OpenService( scm, name, SERVICE_QUERY_STATUS );
+    if( !theService ) {
+        CloseServiceHandle( scm );
+		// can't find service name!
+        return -101;
+    }
+
+    auto result = QueryServiceStatusEx( theService, SC_STATUS_PROCESS_INFO,
+        reinterpret_cast<LPBYTE>( &ssStatus ), sizeof( SERVICE_STATUS_PROCESS ),
+        &dwBytesNeeded );
+
+    CloseServiceHandle( theService );
+    CloseServiceHandle( scm );
+
+    if( result == 0 ) {
+        return 0;
+    }
+
+    return ssStatus.dwCurrentState;
+}
+
 VOID WINAPI handler (DWORD signal) {
 	switch (signal) {
 		case (SERVICE_CONTROL_STOP):
@@ -120,6 +155,9 @@ void InitAll (Handle<Object> exports) {
 
 	exports->Set(Nan::New("add").ToLocalChecked(),
 			Nan::GetFunction(Nan::New<FunctionTemplate>(Add)).ToLocalChecked());
+
+	exports->Set(Nan::New("getStatus").ToLocalChecked(),
+			Nan::GetFunction(Nan::New<FunctionTemplate>(GetStatus)).ToLocalChecked());
 
 	exports->Set(Nan::New("isStopRequested").ToLocalChecked(),
 			Nan::GetFunction(Nan::New<FunctionTemplate>(IsStopRequested)).ToLocalChecked());
@@ -210,6 +248,28 @@ NAN_METHOD(Add) {
 	CloseServiceHandle (scm_handle);
 
 	info.GetReturnValue().Set(info.This());
+}
+
+NAN_METHOD(GetStatus) {
+	Nan::HandleScope scope;
+	int status_code;
+	
+	// info[0] => service_name;
+	if (! info[0]->IsString()) {
+		Nan::ThrowTypeError("Service Name argument must be a string");
+		return;
+	}
+	
+	Nan::Utf8String service_name(info[0]);
+	std::string std_service_name;
+	std_service_name = *service_name;
+
+	const char* ch_service_name = std_service_name.length() ? std_service_name.c_str() : NULL;
+	
+	status_code = get_status (ch_service_name);
+	v8::Local<v8::Number> num = Nan::New(status_code);
+
+	info.GetReturnValue().Set(num);
 }
 
 NAN_METHOD(IsStopRequested) {

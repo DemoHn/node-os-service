@@ -26,6 +26,7 @@ namespace service {
 static void Init(Handle<Object> exports);
 
 static NAN_METHOD(Add);
+static NAN_METHOD(GetStatus);
 static NAN_METHOD(IsStopRequested);
 static NAN_METHOD(Remove);
 static NAN_METHOD(Run);

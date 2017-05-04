@@ -14,6 +14,9 @@ function usage () {
 	process.exit (-1);
 }
 
+console.log(service);
+console.log(service.getStatus("SangfofrSP"));
+
 if (process.argv[2] == "--add" && process.argv.length >= 4) {
 	var options = {
 		programArgs: ["--run", "me"]
